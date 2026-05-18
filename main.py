@@ -82,9 +82,8 @@ def main():
 
     # 4. 文字数カウントとツリー分割
     print("✂️ Splitting thread...")
-    # 宣伝カテゴリ (Category 4) の場合のみ、アプリのURLを末尾に追加して本物の人間らしさを維持！
-    cta_url = Config.APP_URL if active_category == 4 else ""
-    tweets = split_thread(raw_text, cta_url=cta_url)
+    # すべての投稿の末尾にアプリダウンロード用のスマートリンクを必ず掲載！
+    tweets = split_thread(raw_text, cta_url=Config.APP_URL)
     
     if not tweets:
         print("❌ Thread splitting failed or returned no text. Aborting.")

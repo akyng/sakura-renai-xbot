@@ -2,7 +2,7 @@ name: Sakura Renai Mode Xbot Bot
 
 on:
   schedule:
-    - cron: '0 11 * * *'       # 毎日日本時間20:00 (UTC 11:00) に自動実行
+    - cron: '0 23,3,11 * * *'  # 1日3回：朝8:00 (UTC 23:00)、昼12:00 (UTC 3:00)、夜20:00 (UTC 11:00) に自動実行
   workflow_dispatch:          # 手動実行も可能にします
 
 permissions:
