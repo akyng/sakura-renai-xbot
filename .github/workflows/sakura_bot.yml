@@ -1,0 +1,56 @@
+name: Sakura Renai Mode Xbot Bot
+
+on:
+  schedule:
+    - cron: '0 11 * * *'       # 毎日日本時間20:00 (UTC 11:00) に自動実行
+  workflow_dispatch:          # 手動実行も可能にします
+
+permissions:
+  contents: write             # ローテーション状況(state.json)を保存するために書き込み権限を付与
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. コードのチェックアウト
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Python環境のセットアップ
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      # 3. 依存ライブラリのインストール
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4. ボットスクリプトの実行 (本番APIモードで実行)
+      - name: Run Auto-Poster Bot
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_KEY_SECRET: ${{ secrets.X_API_KEY_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+          APP_URL: ${{ secrets.APP_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+          PUBLISH_MODE: api # クラウド実行時は本番投稿モードで動作
+        run: python main.py
+
+      # 5. ローテーション状態の自動セーブ（state.jsonの更新をGitHubに保存）
+      - name: Commit and push state updates
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add state.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: auto-update sakura rotation state [skip ci]"
+            git push
+          else
+            echo "No state changes to commit."
+          fi
