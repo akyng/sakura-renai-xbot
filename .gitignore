@@ -1,0 +1,11 @@
+# Environment secrets
+.env
+
+# Runtime caches and state files
+auth_cookies.json
+*screenshot*.png
+*.pyc
+__pycache__/
+
+# Local OS caches
+.DS_Store
