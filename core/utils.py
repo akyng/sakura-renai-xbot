@@ -86,3 +86,22 @@ def split_thread(raw_text: str, cta_url: str = "") -> list:
             tweets.append(f"アプリの無料ダウンロード・詳細はこちらからチェック！👇\n{cta_url}")
             
     return tweets
+
+def send_chatwork_notification(message: str) -> None:
+    """Chatwork に通知メッセージを送信する。"""
+    import requests
+    from config import Config
+    token = Config.CHATWORK_API_TOKEN
+    room_id = Config.CHATWORK_ROOM_ID
+    if not token or not room_id:
+        print("⚠️ Chatwork credentials missing. Skipping notification.")
+        return
+    url = f"https://api.chatwork.com/v2/rooms/{room_id}/messages"
+    headers = {"X-ChatWorkToken": token}
+    data = {"body": message}
+    try:
+        response = requests.post(url, headers=headers, data=data)
+        response.raise_for_status()
+        print("✅ Chatwork notification sent!")
+    except Exception as e:
+        print(f"❌ Failed to send Chatwork notification: {e}")

@@ -40,6 +40,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
           PUBLISH_MODE: api # クラウド実行時は本番投稿モードで動作
+          CHATWORK_API_TOKEN: ${{ secrets.CHATWORK_API_TOKEN }}
+          CHATWORK_ROOM_ID: ${{ secrets.CHATWORK_ROOM_ID }}
         run: python main.py
 
       # 5. ローテーション状態の自動セーブ（state.jsonの更新をGitHubに保存）

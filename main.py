@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from config import Config
 from core.generator import ContentGenerator
-from core.utils import split_thread
+from core.utils import split_thread, send_chatwork_notification
 from core.publisher import XPublisher
 
 STATE_FILE = os.path.join(os.path.dirname(__file__), 'state.json')
@@ -73,11 +73,15 @@ def main():
         raw_text = generator.generate_romance_thread(active_category)
         
         if not raw_text:
-            print("❌ AI content generation returned empty. Aborting.")
+            err_msg = "AI content generation returned empty. Aborting."
+            print(f"❌ {err_msg}")
+            send_chatwork_notification(f"[info][title]🔴 【さくら】AI生成失敗[/title]テーマカテゴリ {active_category} の生成結果が空文字でした。[/info]")
             sys.exit(1)
             
     except Exception as e:
-        print(f"❌ AI Generation Engine failed to load: {e}")
+        err_msg = f"AI Generation Engine failed: {e}"
+        print(f"❌ {err_msg}")
+        send_chatwork_notification(f"[info][title]🔴 【さくら】AI生成エンジン異常[/title]エラー詳細:\n{err_msg}[/info]")
         sys.exit(1)
 
     # 4. 文字数カウントとツリー分割
@@ -86,7 +90,9 @@ def main():
     tweets = split_thread(raw_text, cta_url=Config.APP_URL)
     
     if not tweets:
-        print("❌ Thread splitting failed or returned no text. Aborting.")
+        err_msg = "Thread splitting failed or returned no text. Aborting."
+        print(f"❌ {err_msg}")
+        send_chatwork_notification(f"[info][title]🔴 【さくら】スレッド分割失敗[/title]生成された原稿の分割処理に失敗しました。[/info]")
         sys.exit(1)
 
     # 5. X (Twitter) への連投ポスト配信
@@ -103,11 +109,37 @@ def main():
             save_state(state)
             
             print(f"➡️ 次回実行カテゴリ: カテゴリ {categories[next_idx]}")
+            
+            # Chatwork 成功通知！
+            thread_preview = "\n\n---\n\n".join(tweets)
+            msg = (
+                "[info][title]🌸 【さくら】自動投稿成功！[/title]"
+                f"動作モード: {Config.PUBLISH_MODE.upper()}\n"
+                f"実行テーマカテゴリ: {active_category}\n\n"
+                f"【投稿スレッド内容】\n{thread_preview}[/info]"
+            )
+            send_chatwork_notification(msg)
         else:
             print("⚠️ Thread was partially published or failed midway. Rotation index preserved.")
+            msg = (
+                "[info][title]⚠️ 【さくら】スレッドの一部投稿失敗[/title]"
+                f"動作モード: {Config.PUBLISH_MODE.upper()}\n"
+                f"期待した投稿数: {len(tweets)} 件\n"
+                f"実際の投稿数: {len(published_ids)} 件\n\n"
+                "※投稿処理中にエラーが発生したため、一部のツイートのみ投稿され、ローテーションは維持されました。[/info]"
+            )
+            send_chatwork_notification(msg)
             
     except Exception as e:
-        print(f"❌ Publishing Engine error: {e}")
+        err_msg = f"Publishing Engine error: {e}"
+        print(f"❌ {err_msg}")
+        msg = (
+            "[info][title]🔴 【さくら】投稿エンジンで予期せぬエラー[/title]"
+            f"動作モード: {Config.PUBLISH_MODE.upper()}\n"
+            f"実行テーマカテゴリ: {active_category}\n\n"
+            f"❌ エラー内容:\n{err_msg}[/info]"
+        )
+        send_chatwork_notification(msg)
         sys.exit(1)
 
     print("\n🎉 Process execution completed successfully!")

@@ -21,6 +21,10 @@ class Config:
     # Mode Settings
     PUBLISH_MODE = os.getenv('PUBLISH_MODE', 'dryrun').lower() # 'api' または 'dryrun'
 
+    # Chatwork Settings
+    CHATWORK_API_TOKEN = os.getenv('CHATWORK_API_TOKEN')
+    CHATWORK_ROOM_ID = os.getenv('CHATWORK_ROOM_ID')
+
     @classmethod
     def validate(cls):
         missing = []
