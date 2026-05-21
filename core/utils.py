@@ -35,6 +35,7 @@ def split_thread(raw_text: str, cta_url: str = "") -> list:
     綺麗に分割し、連投スレッド用のリストを作成します。
     
     - 各ツイートの最大値は安全のため138文字（276ポイント）に制限します。
+    - 最初のポストには指定のハッシュタグを自動付加します。
     - 最終ポストには自然にCTAリンク（アプリ宣伝URL）を付加します。
     """
     # 「1. 」「2. 」または改行などでセグメントに分割
@@ -43,6 +44,9 @@ def split_thread(raw_text: str, cta_url: str = "") -> list:
     tweets = []
     current_tweet = ""
     max_length = 138.0 # 安全マージンを取った最大全角文字数
+    
+    # 指定のハッシュタグ
+    hashtags = "#恋愛ゲーム #恋愛 #恋愛チャット #AIチャット #恋愛シミュレーション #乙女ゲーム"
     
     for seg in segments:
         # 新しいセグメントを結合した場合の予測文字数を計算
@@ -58,6 +62,16 @@ def split_thread(raw_text: str, cta_url: str = "") -> list:
             
     if current_tweet:
         tweets.append(current_tweet)
+        
+    # 最初のポストにハッシュタグを追加
+    if tweets:
+        first_tweet = tweets[0]
+        first_tweet_with_tags = f"{first_tweet}\n\n{hashtags}"
+        # ハッシュタグを追加しても文字数制限に収まる場合は結合、そうでない場合は2番目のポストとして挿入
+        if calculate_weighted_length(first_tweet_with_tags) <= max_length:
+            tweets[0] = first_tweet_with_tags
+        else:
+            tweets.insert(1, hashtags)
         
     # 最後のポストにCTAリンクを追加
     if cta_url and tweets:
