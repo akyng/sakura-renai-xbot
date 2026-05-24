@@ -45,8 +45,8 @@ def split_thread(raw_text: str, cta_url: str = "") -> list:
     current_tweet = ""
     max_length = 138.0 # 安全マージンを取った最大全角文字数
     
-    # 指定のハッシュタグ
-    hashtags = "#恋愛ゲーム #恋愛 #恋愛チャット #AIチャット #恋愛シミュレーション #乙女ゲーム"
+    # 指定のハッシュタグ (Xの最新アルゴリズムによるスパム判定回避のため1〜2個に厳選)
+    hashtags = "#恋愛ゲーム #AIチャット"
     
     for seg in segments:
         # 新しいセグメントを結合した場合の予測文字数を計算

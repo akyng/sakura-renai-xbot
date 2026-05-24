@@ -29,7 +29,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 4. ボットスクリプトの実行 (本番APIモードで実行)
+      # 3.5. Playwrightブラウザのセットアップ
+      - name: Install Playwright Browser
+        run: |
+          playwright install chromium
+
+      # 3.6. Xログインクッキーの復元
+      - name: Restore X session cookies
+        env:
+          X_COOKIE_JSON: ${{ secrets.X_COOKIE_JSON }}
+        run: |
+          if [ -n "$X_COOKIE_JSON" ]; then
+            echo "$X_COOKIE_JSON" > sakura_cookies.json
+            echo "✅ X session cookies successfully restored."
+          else
+            echo "❌ X_COOKIE_JSON secret is empty or not set. Browser mode will fail without cookies."
+            exit 1
+          fi
+
+      # 4. ボットスクリプトの実行 (ブラウザ自動化モードで実行)
       - name: Run Auto-Poster Bot
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
@@ -39,7 +57,8 @@ jobs:
           APP_URL: ${{ secrets.APP_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
-          PUBLISH_MODE: api # クラウド実行時は本番投稿モードで動作
+          PUBLISH_MODE: browser # ブラウザ自動投稿モードで動作
+          X_COOKIE_PATH: sakura_cookies.json
           CHATWORK_API_TOKEN: ${{ secrets.CHATWORK_API_TOKEN }}
           CHATWORK_ROOM_ID: ${{ secrets.CHATWORK_ROOM_ID }}
         run: python main.py

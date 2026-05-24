@@ -19,7 +19,10 @@ class Config:
     APP_URL = os.getenv('APP_URL', 'https://onelink.to/renai_mode') # デフォルトの宣伝スマートリンク
     
     # Mode Settings
-    PUBLISH_MODE = os.getenv('PUBLISH_MODE', 'dryrun').lower() # 'api' または 'dryrun'
+    PUBLISH_MODE = os.getenv('PUBLISH_MODE', 'dryrun').lower() # 'api', 'browser', または 'dryrun'
+
+    # X Cookie settings for browser mode
+    X_COOKIE_PATH = os.getenv('X_COOKIE_PATH', os.path.join(os.path.dirname(__file__), 'sakura_cookies.json'))
 
     # Chatwork Settings
     CHATWORK_API_TOKEN = os.getenv('CHATWORK_API_TOKEN')
@@ -28,9 +31,11 @@ class Config:
     @classmethod
     def validate(cls):
         missing = []
-        for attr in ['API_KEY', 'API_KEY_SECRET', 'ACCESS_TOKEN', 'ACCESS_TOKEN_SECRET']:
-            if not getattr(cls, attr):
-                missing.append(f"X_{attr}")
+        # X API credentials are only required in 'api' mode
+        if cls.PUBLISH_MODE == 'api':
+            for attr in ['API_KEY', 'API_KEY_SECRET', 'ACCESS_TOKEN', 'ACCESS_TOKEN_SECRET']:
+                if not getattr(cls, attr):
+                    missing.append(f"X_{attr}")
         
         if not cls.GEMINI_API_KEY:
             missing.append("GEMINI_API_KEY")
