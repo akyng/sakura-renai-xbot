@@ -52,8 +52,26 @@ class XPublisher:
         return None
         
     def _publish_browser(self, tweets: list, image_path: str = None) -> list:
+        import threading
+        result_box = {}
+        
+        def worker():
+            try:
+                result_box["result"] = self._publish_browser_internal(tweets, image_path)
+            except Exception as e:
+                result_box["error"] = e
+                
+        t = threading.Thread(target=worker)
+        t.start()
+        t.join()
+        
+        if "error" in result_box:
+            raise result_box["error"]
+        return result_box["result"]
+
+    def _publish_browser_internal(self, tweets: list, image_path: str = None) -> list:
         """
-        Playwright (ブラウザ自動化) による連続投稿 (スレッド対応・画像添付対応)
+        Playwright (ブラウザ自動化) による連続投稿 (スレッド対応・画像添付対応) の内部処理
         """
         from playwright.sync_api import sync_playwright
         import time
@@ -65,6 +83,16 @@ class XPublisher:
         
         # クッキーの存在チェック
         if not os.path.exists(cookie_path):
+            import sys
+            is_interactive = sys.stdin.isatty() and os.getenv("GITHUB_ACTIONS") != "true"
+            if not is_interactive:
+                raise FileNotFoundError(
+                    f"❌ クッキーファイル '{cookie_path}' が存在しません。\n"
+                    f"非インタラクティブ環境（GitHub Actions 等）では自動ログインを実行できません。\n"
+                    f"ローカル環境で 'generate_cookies.py' を実行してクッキーファイルを生成し、\n"
+                    f"GitHub のリポジトリシークレット (X_COOKIE_JSON) を更新してください。"
+                )
+                
             print(f"[!] クッキーファイル '{cookie_path}' が見つかりません。")
             print("[*] ログインセッションを作成するため、ブラウザ(UIあり)を起動します。")
             
@@ -129,20 +157,31 @@ class XPublisher:
                 time.sleep(3)
                 
                 # ログイン状態の検証
-                if "login" in page.url:
+                if "login" in page.url or "i/flow" in page.url:
                     print("[!] ログインクッキーが失効している可能性があります。")
                     browser.close()
+                    
+                    import sys
+                    is_interactive = sys.stdin.isatty() and os.getenv("GITHUB_ACTIONS") != "true"
+                    if not is_interactive:
+                        raise ValueError(
+                            f"❌ Xへのログインセッション（クッキー）が失効しています。\n"
+                            f"非インタラクティブ環境（GitHub Actions 等）では手動再ログインを起動できません。\n"
+                            f"ローカル環境で 'generate_cookies.py' を実行してクッキーを再生成し、\n"
+                            f"GitHub のリポジトリシークレット (X_COOKIE_JSON) を最新のクッキー情報に更新してください。"
+                        )
+                        
                     # クッキーファイルを削除して手動ログインから再試行
                     if os.path.exists(cookie_path):
                         os.remove(cookie_path)
                     return self._publish_browser(tweets, image_path)
                 
                 # 投稿エリアが表示されるのを待つ
-                page.wait_for_selector('div[role="textbox"]')
+                page.wait_for_selector('div[role="dialog"] [data-testid="tweetTextarea_0"]', timeout=30000)
                 time.sleep(2)
                 
                 # 1. 最初のポスト入力と画像添付
-                textboxes = page.query_selector_all('div[role="textbox"]')
+                textboxes = page.query_selector_all('div[role="dialog"] [data-testid="tweetTextarea_0"]')
                 if not textboxes:
                     raise Exception("投稿入力エリアが見つかりません。")
                 
@@ -163,10 +202,11 @@ class XPublisher:
                 page.keyboard.type(tweets[0])
                 time.sleep(1)
                 
-                # 🌟 ハッシュタグ補完ドロップダウンと透明な傍受レイヤーを閉じるために Escape を送信
-                print("[*] ハッシュタグ自動補完オーバーレイを閉じるため Escape キーを送信中...")
-                page.keyboard.press("Escape")
-                time.sleep(1)
+                # 🌟 ハッシュタグ補完ドロップダウンと透明な傍受レイヤーを閉じるために Escape を送信（テキストにハッシュタグが含まれる場合のみ）
+                if any("#" in t for t in tweets[:1]):
+                    print("[*] ハッシュタグ自動補完オーバーレイを閉じるため Escape キーを送信中...")
+                    page.keyboard.press("Escape")
+                    time.sleep(1)
                 
                 # 2. スレッド（2つ目以降のツイート）の追加
                 for idx, tweet_text in enumerate(tweets[1:], start=1):
